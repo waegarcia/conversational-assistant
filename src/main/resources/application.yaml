@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: conversational-assistant
+
+  profiles:
+    active: dev
+
+  datasource:
+    url: jdbc:h2:mem:assistant_db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  metrics:
+    export:
+      simple:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+external:
+  weather:
+    api:
+      base-url: https://api.openweathermap.org/data/2.5
+      key: ${WEATHER_API_KEY:demo_key}
+      timeout: 10000
