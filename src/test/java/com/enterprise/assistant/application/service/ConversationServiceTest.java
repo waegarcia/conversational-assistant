@@ -10,6 +10,7 @@ import com.enterprise.assistant.domain.repository.ConversationRepository;
 import com.enterprise.assistant.domain.repository.MessageRepository;
 import com.enterprise.assistant.infrastructure.external.WeatherApiClient;
 import com.enterprise.assistant.infrastructure.external.dto.WeatherResponse;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,11 +41,15 @@ class ConversationServiceTest {
     @Mock
     private WeatherApiClient weatherApiClient;
 
+    @Mock
+    private MetricsService metricsService;
+
     @InjectMocks
     private ConversationService conversationService;
 
     private ConversationRequest request;
     private Conversation conversation;
+    private Timer.Sample timerSample;
 
     @BeforeEach
     void setUp() {
@@ -59,22 +64,25 @@ class ConversationServiceTest {
                 .userId("user123")
                 .status(ConversationStatus.ACTIVE)
                 .build();
+
+        timerSample = mock(Timer.Sample.class);
     }
 
     @Test
     @DisplayName("Should create new conversation when sessionId is null")
     void shouldCreateNewConversation() {
         Message assistantMessage = createAssistantMessage(
-                "¡Hola! Soy tu asistente virtual.",
+                "Hola! Soy tu asistente virtual.",
                 Intent.GREETING.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.GREETING);
         when(conversationRepository.save(any(Conversation.class))).thenReturn(conversation);
         when(messageRepository.save(any(Message.class)))
-                .thenReturn(new Message()) // Primera llamada: mensaje del usuario
-                .thenReturn(assistantMessage); // Segunda llamada: mensaje del asistente
+                .thenReturn(new Message())
+                .thenReturn(assistantMessage);
 
         ConversationResponse response = conversationService.processMessage(request);
 
@@ -86,6 +94,10 @@ class ConversationServiceTest {
 
         verify(conversationRepository, times(1)).save(any(Conversation.class));
         verify(messageRepository, times(2)).save(any(Message.class));
+        verify(metricsService, times(1)).incrementMessagesProcessed();
+        verify(metricsService, times(1)).incrementConversationsCreated();
+        verify(metricsService, times(1)).recordIntentDetected(Intent.GREETING);
+        verify(metricsService, times(1)).recordResponseTime(timerSample, Intent.GREETING);
     }
 
     @Test
@@ -94,11 +106,12 @@ class ConversationServiceTest {
         request.setSessionId("test-session-id");
 
         Message assistantMessage = createAssistantMessage(
-                "¡Hola! Soy tu asistente virtual.",
+                "Hola! Soy tu asistente virtual.",
                 Intent.GREETING.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(conversationRepository.findBySessionId("test-session-id"))
                 .thenReturn(Optional.of(conversation));
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.GREETING);
@@ -121,11 +134,12 @@ class ConversationServiceTest {
     @DisplayName("Should handle GREETING intent correctly")
     void shouldHandleGreetingIntent() {
         Message assistantMessage = createAssistantMessage(
-                "¡Hola! Soy tu asistente virtual. Puedo ayudarte con información del clima. ¿En qué ciudad te gustaría consultar?",
+                "Hola! Soy tu asistente virtual. Puedo ayudarte con informacion del clima. En que ciudad te gustaria consultar?",
                 Intent.GREETING.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.GREETING);
         when(conversationRepository.save(any(Conversation.class))).thenReturn(conversation);
         when(messageRepository.save(any(Message.class)))
@@ -143,7 +157,7 @@ class ConversationServiceTest {
     @Test
     @DisplayName("Should handle WEATHER_QUERY intent and call external API")
     void shouldHandleWeatherQueryIntent() {
-        request.setMessage("Qué temperatura hace en Buenos Aires");
+        request.setMessage("Que temperatura hace en Buenos Aires");
 
         WeatherResponse weatherResponse = createWeatherResponse();
         String weatherText = "El clima en Buenos Aires:\nTemperatura: 25.0°C (se siente como 26.0°C)\n" +
@@ -155,6 +169,7 @@ class ConversationServiceTest {
                 "OpenWeather"
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.WEATHER_QUERY);
         when(intentProcessorService.extractCity(anyString())).thenReturn("Buenos Aires");
         when(weatherApiClient.getCurrentWeather("Buenos Aires")).thenReturn(weatherResponse);
@@ -167,23 +182,26 @@ class ConversationServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getMessage()).contains("Buenos Aires");
-        assertThat(response.getMessage()).contains("25.0°C");
+        assertThat(response.getMessage()).contains("25.0");
         assertThat(response.getExternalServiceUsed()).isEqualTo("OpenWeather");
 
         verify(weatherApiClient, times(1)).getCurrentWeather("Buenos Aires");
+        verify(metricsService, times(1)).incrementExternalApiCall();
+        verify(metricsService, times(1)).recordExternalApiSuccess();
     }
 
     @Test
     @DisplayName("Should handle WEATHER_QUERY error gracefully")
     void shouldHandleWeatherApiError() {
-        request.setMessage("Qué temperatura hace");
+        request.setMessage("Que temperatura hace");
 
         Message assistantMessage = createAssistantMessage(
-                "Lo siento, no pude obtener la información del clima en este momento. Por favor, intenta nuevamente más tarde.",
+                "Lo siento, no pude obtener la informacion del clima en este momento. Por favor, intenta nuevamente mas tarde.",
                 Intent.WEATHER_QUERY.name(),
                 "OpenWeather"
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.WEATHER_QUERY);
         when(intentProcessorService.extractCity(anyString())).thenReturn("Buenos Aires");
         when(weatherApiClient.getCurrentWeather(anyString())).thenThrow(new RuntimeException("API Error"));
@@ -197,6 +215,10 @@ class ConversationServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getMessage()).contains("no pude obtener");
         assertThat(response.getExternalServiceUsed()).isEqualTo("OpenWeather");
+
+        verify(metricsService, times(1)).incrementExternalApiCall();
+        verify(metricsService, times(1)).recordExternalApiFailure();
+        verify(metricsService, times(1)).recordError("weather_api_error");
     }
 
     @Test
@@ -205,11 +227,12 @@ class ConversationServiceTest {
         request.setMessage("Ayuda");
 
         Message assistantMessage = createAssistantMessage(
-                "Puedo ayudarte a consultar el clima de cualquier ciudad. Solo pregúntame algo como: '¿Qué tiempo hace en Buenos Aires?'",
+                "Puedo ayudarte a consultar el clima de cualquier ciudad. Solo preguntame algo como: Que tiempo hace en Buenos Aires?",
                 Intent.HELP.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.HELP);
         when(conversationRepository.save(any(Conversation.class))).thenReturn(conversation);
         when(messageRepository.save(any(Message.class)))
@@ -225,14 +248,15 @@ class ConversationServiceTest {
     @Test
     @DisplayName("Should handle FAREWELL intent correctly")
     void shouldHandleFarewellIntent() {
-        request.setMessage("Adiós");
+        request.setMessage("Adios");
 
         Message assistantMessage = createAssistantMessage(
-                "¡Hasta luego! Que tengas un excelente día.",
+                "Hasta luego! Que tengas un excelente dia.",
                 Intent.FAREWELL.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.FAREWELL);
         when(conversationRepository.save(any(Conversation.class))).thenReturn(conversation);
         when(messageRepository.save(any(Message.class)))
@@ -251,11 +275,12 @@ class ConversationServiceTest {
         request.setMessage("xyz123");
 
         Message assistantMessage = createAssistantMessage(
-                "Disculpa, no entendí tu consulta. Puedo ayudarte con información del clima. Pregúntame sobre el tiempo en alguna ciudad.",
+                "Disculpa, no entendi tu consulta. Puedo ayudarte con informacion del clima. Preguntame sobre el tiempo en alguna ciudad.",
                 Intent.UNKNOWN.name(),
                 null
         );
 
+        when(metricsService.startTimer()).thenReturn(timerSample);
         when(intentProcessorService.detectIntent(anyString())).thenReturn(Intent.UNKNOWN);
         when(conversationRepository.save(any(Conversation.class))).thenReturn(conversation);
         when(messageRepository.save(any(Message.class)))
@@ -265,7 +290,7 @@ class ConversationServiceTest {
         ConversationResponse response = conversationService.processMessage(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.getMessage()).contains("no entendí");
+        assertThat(response.getMessage()).contains("no entendi");
     }
 
     @Test
@@ -279,6 +304,7 @@ class ConversationServiceTest {
 
         verify(conversationRepository, times(1)).findBySessionId("test-session-id");
         verify(conversationRepository, times(1)).save(any(Conversation.class));
+        verify(metricsService, times(1)).decrementActiveConversations();
     }
 
     private Message createAssistantMessage(String content, String intent, String externalService) {
