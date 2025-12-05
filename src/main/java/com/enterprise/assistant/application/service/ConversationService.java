@@ -127,17 +127,17 @@ public class ConversationService {
     private String formatWeatherResponse(WeatherResponse weather) {
         StringBuilder response = new StringBuilder();
         response.append(String.format("El clima en %s:\n", weather.getName()));
-        response.append(String.format("🌡️ Temperatura: %.1f°C (se siente como %.1f°C)\n",
+        response.append(String.format("Temperatura: %.1f°C (se siente como %.1f°C)\n",
                 weather.getMain().getTemp(),
                 weather.getMain().getFeelsLike()));
 
         if (!weather.getWeather().isEmpty()) {
-            response.append(String.format("☁️ Condiciones: %s\n",
+            response.append(String.format("Condiciones: %s\n",
                     weather.getWeather().get(0).getDescription()));
         }
 
-        response.append(String.format("💧 Humedad: %d%%\n", weather.getMain().getHumidity()));
-        response.append(String.format("🌬️ Viento: %.1f m/s", weather.getWind().getSpeed()));
+        response.append(String.format("Humedad: %d%%\n", weather.getMain().getHumidity()));
+        response.append(String.format("Viento: %.1f m/s", weather.getWind().getSpeed()));
 
         return response.toString();
     }

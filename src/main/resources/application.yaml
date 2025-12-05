@@ -1,16 +1,13 @@
 spring:
   application:
     name: conversational-assistant
-
   profiles:
     active: dev
-
   datasource:
     url: jdbc:h2:mem:assistant_db
     driver-class-name: org.h2.Driver
     username: sa
     password:
-
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -18,7 +15,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
   h2:
     console:
       enabled: true
@@ -49,8 +45,3 @@ external:
       base-url: https://api.openweathermap.org/data/2.5
       key: ${WEATHER_API_KEY:demo_key}
       timeout: 10000
-
-logging:
-  level:
-    org.springdoc: DEBUG
-    org.springframework.web: DEBUG
