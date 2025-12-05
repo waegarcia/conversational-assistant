@@ -11,6 +11,7 @@ import com.enterprise.assistant.domain.repository.ConversationRepository;
 import com.enterprise.assistant.domain.repository.MessageRepository;
 import com.enterprise.assistant.infrastructure.external.WeatherApiClient;
 import com.enterprise.assistant.infrastructure.external.dto.WeatherResponse;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,14 @@ public class ConversationService {
     private final MessageRepository messageRepository;
     private final IntentProcessorService intentProcessorService;
     private final WeatherApiClient weatherApiClient;
+    private final MetricsService metricsService;
 
     @Transactional
     public ConversationResponse processMessage(ConversationRequest request) {
+        Timer.Sample sample = metricsService.startTimer();
+
         log.info("Processing message from user: {}", request.getUserId());
+        metricsService.incrementMessagesProcessed();
 
         Conversation conversation = getOrCreateConversation(request);
 
@@ -40,6 +45,7 @@ public class ConversationService {
 
         Intent intent = intentProcessorService.detectIntent(request.getMessage());
         log.info("Detected intent: {} for message: {}", intent, request.getMessage());
+        metricsService.recordIntentDetected(intent);
 
         String responseText = generateResponse(intent, request.getMessage());
         String externalService = intent == Intent.WEATHER_QUERY ? "OpenWeather" : null;
@@ -50,6 +56,8 @@ public class ConversationService {
                 intent.name(),
                 externalService
         );
+
+        metricsService.recordResponseTime(sample, intent);
 
         return buildResponse(conversation, assistantMessage);
     }
@@ -72,6 +80,7 @@ public class ConversationService {
                 .status(ConversationStatus.ACTIVE)
                 .build();
 
+        metricsService.incrementConversationsCreated();
         return conversationRepository.save(conversation);
     }
 
@@ -102,10 +111,10 @@ public class ConversationService {
     private String generateResponse(Intent intent, String userMessage) {
         return switch (intent) {
             case WEATHER_QUERY -> handleWeatherQuery(userMessage);
-            case GREETING -> "¡Hola! Soy tu asistente virtual. Puedo ayudarte con información del clima. ¿En qué ciudad te gustaría consultar?";
-            case FAREWELL -> "¡Hasta luego! Que tengas un excelente día.";
-            case HELP -> "Puedo ayudarte a consultar el clima de cualquier ciudad. Solo pregúntame algo como: '¿Qué tiempo hace en Buenos Aires?'";
-            case UNKNOWN -> "Disculpa, no entendí tu consulta. Puedo ayudarte con información del clima. Pregúntame sobre el tiempo en alguna ciudad.";
+            case GREETING -> "Hola! Soy tu asistente virtual. Puedo ayudarte con informacion del clima. En que ciudad te gustaria consultar?";
+            case FAREWELL -> "Hasta luego! Que tengas un excelente dia.";
+            case HELP -> "Puedo ayudarte a consultar el clima de cualquier ciudad. Solo preguntame algo como: Que tiempo hace en Buenos Aires?";
+            case UNKNOWN -> "Disculpa, no entendi tu consulta. Puedo ayudarte con informacion del clima. Preguntame sobre el tiempo en alguna ciudad.";
         };
     }
 
@@ -114,13 +123,17 @@ public class ConversationService {
             String city = intentProcessorService.extractCity(userMessage);
             log.info("Extracting weather for city: {}", city);
 
+            metricsService.incrementExternalApiCall();
             WeatherResponse weather = weatherApiClient.getCurrentWeather(city);
+            metricsService.recordExternalApiSuccess();
 
             return formatWeatherResponse(weather);
 
         } catch (Exception e) {
             log.error("Error processing weather query", e);
-            return "Lo siento, no pude obtener la información del clima en este momento. Por favor, intenta nuevamente más tarde.";
+            metricsService.recordExternalApiFailure();
+            metricsService.recordError("weather_api_error");
+            return "Lo siento, no pude obtener la informacion del clima en este momento. Por favor, intenta nuevamente mas tarde.";
         }
     }
 
@@ -168,6 +181,7 @@ public class ConversationService {
         conversation.setEndedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
 
+        metricsService.decrementActiveConversations();
         log.info("Conversation ended: {}", sessionId);
     }
 
