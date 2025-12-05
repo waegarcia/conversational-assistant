@@ -35,3 +35,4 @@ build/
 .env
 *.env
 application-local.yml
+DEFENSE_GUIDE.md
