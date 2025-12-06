@@ -2,6 +2,7 @@ package com.enterprise.assistant.api;
 
 import com.enterprise.assistant.api.dto.ErrorResponse;
 import com.enterprise.assistant.infrastructure.external.ExternalServiceException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

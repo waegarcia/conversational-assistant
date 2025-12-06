@@ -8,3 +8,18 @@ spring:
   h2:
     console:
       enabled: true
+
+# Test credentials (not used in real environments)
+external:
+  weather:
+    api:
+      key: test_key_not_used
+
+jwt:
+  secret: test_secret_key_for_testing_only_12345678901234567890
+  expiration: 86400000
+
+app:
+  auth:
+    username: test_user
+    password: test_password

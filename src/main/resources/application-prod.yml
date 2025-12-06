@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/assistant_db}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -11,3 +11,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+external:
+  weather:
+    api:
+      key: ${WEATHER_API_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+app:
+  auth:
+    username: ${AUTH_USERNAME}
+    password: ${AUTH_PASSWORD}

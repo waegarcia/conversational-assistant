@@ -43,5 +43,14 @@ external:
   weather:
     api:
       base-url: https://api.openweathermap.org/data/2.5
-      key: ${WEATHER_API_KEY:demo_key}
+      key: ${WEATHER_API_KEY}
       timeout: 10000
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
+
+app:
+  auth:
+    username: ${AUTH_USERNAME:admin}
+    password: ${AUTH_PASSWORD:password123}
