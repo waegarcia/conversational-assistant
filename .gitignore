@@ -33,4 +33,5 @@ build/
 
 .env
 *.env
+.env.prod
 application-local.yml

@@ -16,9 +16,9 @@ Microservicio Java de asistente virtual conversacional con integración a OpenWe
 - Maven 3.9+
 - API Key de OpenWeather (gratuita): https://openweathermap.org/api
 
-## Ejecución
+## Ejecución (desarrollo)
 
-**1. Clonar y entrar al proyecto**
+**1. Clonar el proyecto**
 ```bash
 git clone https://github.com/waegarcia/conversational-assistant.git
 cd conversational-assistant
@@ -152,18 +152,20 @@ El servicio es stateless (JWT), permitiendo escalar horizontalmente con múltipl
 - **Rate limiting**: Bucket4j o configuración en API Gateway (Kong, AWS API Gateway).
 - **Mensajería asíncrona**: Spring AMQP (RabbitMQ) o Spring Kafka para procesar mensajes en background.
 
-## Configuración de producción
+## Docker (producción)
 
-Variables de entorno requeridas:
+Requiere Docker y Docker Compose instalados.
+
 ```bash
-WEATHER_API_KEY=<xxxxx>
-DATABASE_URL=jdbc:postgresql://<host>:5432/<database>
-DATABASE_USERNAME=<db_user>
-DATABASE_PASSWORD=<db_password>
-JWT_SECRET=<secret_key_32_chars>
-AUTH_USERNAME=<user>
-AUTH_PASSWORD=<password>
+# Copiar y configurar variables
+cp .env.example .env
+# Editar .env con tus valores (ver .env.example)
+
+# Levantar (incluye PostgreSQL)
+docker-compose up --build
 ```
+
+La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
 
 ## Autor
 
