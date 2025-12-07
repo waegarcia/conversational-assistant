@@ -151,6 +151,7 @@ El servicio es stateless (JWT), permitiendo escalar horizontalmente con múltipl
 - **Circuit breaker**: Resilience4j para manejar fallos de APIs externas.
 - **Rate limiting**: Bucket4j o configuración en API Gateway (Kong, AWS API Gateway).
 - **Mensajería asíncrona**: Spring AMQP (RabbitMQ) o Spring Kafka para procesar mensajes en background.
+- **Monitoreo**: Prometheus + Grafana para dashboards y alertas en tiempo real.
 
 ## Docker (producción)
 
