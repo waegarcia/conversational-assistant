@@ -1,0 +1,105 @@
+@startuml class-diagram
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+' === DOMAIN MODEL ===
+package "domain.model" {
+    class Conversation {
+        -Long id
+        -String sessionId
+        -String userId
+        -LocalDateTime startedAt
+        -LocalDateTime endedAt
+        -ConversationStatus status
+        -List<Message> messages
+    }
+    
+    class Message {
+        -Long id
+        -Conversation conversation
+        -MessageRole role
+        -String content
+        -LocalDateTime timestamp
+        -String intent
+        -String externalServiceUsed
+    }
+    
+    enum ConversationStatus {
+        ACTIVE
+        COMPLETED
+    }
+    
+    enum MessageRole {
+        USER
+        ASSISTANT
+    }
+    
+    enum Intent {
+        WEATHER_QUERY
+        GREETING
+        FAREWELL
+        HELP
+        UNKNOWN
+    }
+    
+    Conversation "1" *-- "*" Message
+    Conversation --> ConversationStatus
+    Message --> MessageRole
+}
+
+' === REPOSITORIES ===
+package "domain.repository" {
+    interface ConversationRepository {
+        +findBySessionId(sessionId): Optional~Conversation~
+    }
+    
+    interface MessageRepository {
+    }
+}
+
+' === SERVICES ===
+package "application.service" {
+    class ConversationService {
+        +processMessage(request): ConversationResponse
+        +getConversationHistory(sessionId): Conversation
+        +endConversation(sessionId): void
+    }
+    
+    class IntentProcessorService {
+        +detectIntent(message): Intent
+        +extractCity(message): String
+    }
+    
+    class MetricsService {
+        +recordConversationCreated(): void
+        +recordMessageProcessed(): void
+        +recordIntentDetected(intent): void
+    }
+    
+    class AuthService {
+        +login(request): LoginResponse
+        +validateToken(token): boolean
+    }
+}
+
+' === INFRASTRUCTURE ===
+package "infrastructure" {
+    class WeatherApiClient {
+        +getCurrentWeather(city): WeatherResponse
+    }
+    
+    class JwtUtil {
+        +generateToken(username): String
+        +validateToken(token): boolean
+    }
+}
+
+' === RELATIONSHIPS ===
+ConversationService --> ConversationRepository
+ConversationService --> MessageRepository
+ConversationService --> IntentProcessorService
+ConversationService --> MetricsService
+ConversationService --> WeatherApiClient
+AuthService --> JwtUtil
+
+@enduml

@@ -1,0 +1,33 @@
+graph TB
+    subgraph API
+        AC[AuthController]
+        CC[ConversationController]
+        MC[MetricsController]
+        GEH[GlobalExceptionHandler]
+    end
+    
+    subgraph Application
+        AS[AuthService]
+        CS[ConversationService]
+        IPS[IntentProcessorService]
+        MS[MetricsService]
+    end
+    
+    subgraph Domain
+        Conv[Conversation]
+        Msg[Message]
+        CR[ConversationRepository]
+    end
+    
+    subgraph Infrastructure
+        WAC[WeatherApiClient]
+        JWT[JwtUtil]
+    end
+    
+    CC --> CS
+    CS --> IPS
+    CS --> MS
+    CS --> CR
+    CS --> WAC
+    AC --> AS
+    AS --> JWT

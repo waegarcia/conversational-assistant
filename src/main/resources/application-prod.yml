@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+external:
+  weather:
+    api:
+      base-url: https://api.openweathermap.org/data/2.5
+      key: ${WEATHER_API_KEY}
+      timeout: 10000
+      default-city: Buenos Aires
+      units: metric
+      lang: es
+
+jwt:
+  secret: ${JWT_SECRET}
+
+app:
+  auth:
+    username: ${AUTH_USERNAME}
+    password: ${AUTH_PASSWORD}

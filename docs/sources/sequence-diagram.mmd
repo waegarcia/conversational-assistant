@@ -1,0 +1,9 @@
+sequenceDiagram
+    Usuario->>Controller: POST /conversations
+    Controller->>ConversationService: processMessage()
+    ConversationService->>IntentProcessor: detectIntent()
+    alt WEATHER_QUERY
+        ConversationService->>WeatherAPI: getCurrentWeather()
+    end
+    ConversationService->>DB: save()
+    ConversationService-->>Usuario: Response
