@@ -93,7 +93,7 @@ curl -X POST http://localhost:8080/api/conversations \
 # 4. Finalizar conversación (cuando se desee terminar)
 curl -X DELETE http://localhost:8080/api/conversations/abc-123 \
   -H "Authorization: Bearer <token>"
-# Respuesta: 200 OK
+# Respuesta: 204 No Content
 ```
 
 ## Intenciones soportadas
@@ -123,7 +123,7 @@ mvn test
 
 ## Observabilidad
 
-Métricas expuestas vía Spring Actuator (`/actuator/metrics`):
+Métricas disponibles en `/api/metrics/summary`:
 | Métrica | Descripción | Relevancia |
 |---------|-------------|------------|
 | `conversations.created` | Total de conversaciones | Mide adopción del servicio |
@@ -167,6 +167,8 @@ docker-compose up --build
 ```
 
 La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
+
+**Demo en AWS EC2:** http://54.145.25.43:8080/swagger-ui/index.html
 
 ## Autor
 
