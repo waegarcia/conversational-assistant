@@ -2,6 +2,8 @@ package com.enterprise.assistant.api;
 
 import com.enterprise.assistant.api.dto.ErrorResponse;
 import com.enterprise.assistant.infrastructure.external.ExternalServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,28 +16,34 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
+        log.warn("Validation error: {}", errors);
         return ResponseEntity.badRequest().body(buildError("Validation Error", errors, 400));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(buildError("Bad Request", ex.getMessage(), 400));
     }
 
     @ExceptionHandler(ExternalServiceException.class)
     public ResponseEntity<ErrorResponse> handleExternalService(ExternalServiceException ex) {
-        return ResponseEntity.status(503).body(buildError("External Service Error", 
+        log.error("External service error: {}", ex.getMessage());
+        return ResponseEntity.status(503).body(buildError("External Service Error",
                 "No se pudo conectar con el servicio externo", 503));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
-        return ResponseEntity.status(500).body(buildError("Internal Error", 
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(500).body(buildError("Internal Error",
                 "Ocurrio un error inesperado", 500));
     }
 

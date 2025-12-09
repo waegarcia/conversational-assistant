@@ -14,6 +14,8 @@ import com.enterprise.assistant.infrastructure.external.dto.WeatherResponse;
 import com.enterprise.assistant.domain.model.Intent;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ConversationService {
 
+    private static final Logger log = LoggerFactory.getLogger(ConversationService.class);
+
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final IntentProcessorService intentProcessorService;
@@ -33,6 +37,9 @@ public class ConversationService {
 
     @Transactional
     public ConversationResponse processMessage(ConversationRequest request) {
+        log.info("Processing message for userId: {}, sessionId: {}",
+                request.getUserId(), request.getSessionId());
+
         Timer.Sample sample = metricsService.startTimer();
         metricsService.incrementMessagesProcessed();
 
@@ -41,6 +48,7 @@ public class ConversationService {
         saveUserMessage(conversation, request.getMessage());
 
         Intent intent = intentProcessorService.detectIntent(request.getMessage());
+        log.debug("Intent detected: {}", intent);
         metricsService.recordIntentDetected(intent);
 
         String responseText = generateResponse(intent, request.getMessage());
@@ -55,6 +63,9 @@ public class ConversationService {
 
         metricsService.recordResponseTime(sample, intent);
 
+        log.info("Message processed successfully. SessionId: {}, Intent: {}",
+                conversation.getSessionId(), intent);
+
         return buildResponse(conversation, assistantMessage);
     }
 
@@ -67,8 +78,11 @@ public class ConversationService {
     }
 
     private Conversation createNewConversation(String userId) {
+        String sessionId = UUID.randomUUID().toString();
+        log.info("Creating new conversation for userId: {}, sessionId: {}", userId, sessionId);
+
         Conversation conversation = Conversation.builder()
-                .sessionId(UUID.randomUUID().toString())
+                .sessionId(sessionId)
                 .userId(userId)
                 .status(ConversationStatus.ACTIVE)
                 .build();
@@ -113,12 +127,15 @@ public class ConversationService {
     private String handleWeatherQuery(String userMessage) {
         try {
             String city = intentProcessorService.extractCity(userMessage);
+            log.debug("Extracted city from message: {}", city);
+
             metricsService.incrementExternalApiCall();
             WeatherResponse weather = weatherApiClient.getCurrentWeather(city);
 
             return formatWeatherResponse(weather);
 
         } catch (Exception e) {
+            log.error("Error fetching weather data: {}", e.getMessage());
             metricsService.recordExternalApiFailure();
             return "Lo siento, no pude obtener la informacion del clima en este momento. Por favor, intenta nuevamente mas tarde.";
         }
@@ -145,6 +162,8 @@ public class ConversationService {
 
     @Transactional
     public void endConversation(String sessionId) {
+        log.info("Ending conversation with sessionId: {}", sessionId);
+
         Conversation conversation = conversationRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + sessionId));
 
@@ -153,6 +172,9 @@ public class ConversationService {
         conversationRepository.save(conversation);
 
         metricsService.decrementActiveConversations();
+
+        log.info("Conversation ended successfully. SessionId: {}, Messages: {}",
+                sessionId, conversation.getMessages().size());
     }
 
     @Transactional(readOnly = true)

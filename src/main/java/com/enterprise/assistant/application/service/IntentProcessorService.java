@@ -3,6 +3,8 @@ package com.enterprise.assistant.application.service;
 import com.enterprise.assistant.config.WeatherApiProperties;
 import com.enterprise.assistant.domain.model.Intent;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
@@ -10,6 +12,8 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 public class IntentProcessorService {
+
+    private static final Logger log = LoggerFactory.getLogger(IntentProcessorService.class);
 
     private final WeatherApiProperties weatherApiProperties;
 
@@ -58,15 +62,21 @@ public class IntentProcessorService {
                         (words[0].equalsIgnoreCase("buenos") ||
                                 words[0].equalsIgnoreCase("san") ||
                                 words[0].equalsIgnoreCase("santa"))) {
-                    return words[0] + " " + words[1];
+                    String cityName = words[0] + " " + words[1];
+                    log.debug("Extracted compound city name: {}", cityName);
+                    return cityName;
                 }
 
                 if (words.length > 0) {
-                    return words[0].replaceAll("[^a-zA-ZáéíóúñÁÉÍÓÚÑ]", "");
+                    String cityName = words[0].replaceAll("[^a-zA-ZáéíóúñÁÉÍÓÚÑ]", "");
+                    log.debug("Extracted single-word city name: {}", cityName);
+                    return cityName;
                 }
             }
         }
 
+        log.debug("Could not extract city from message, using default: {}",
+                weatherApiProperties.getDefaultCity());
         return weatherApiProperties.getDefaultCity();
     }
 }
