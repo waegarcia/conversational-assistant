@@ -168,7 +168,7 @@ docker-compose up --build
 
 La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
 
-**Demo en AWS EC2:** http://54.145.25.43:8080/swagger-ui/index.html
+**Demo en AWS EC2:** http://54.167.152.169:8080/swagger-ui/index.html
 
 ## Autor
 
