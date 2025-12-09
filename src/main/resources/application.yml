@@ -55,5 +55,5 @@ jwt:
 
 app:
   auth:
-    username: ${AUTH_USERNAME:admin}
-    password: ${AUTH_PASSWORD:password123}
+    username: ${AUTH_USERNAME}
+    password: ${AUTH_PASSWORD}

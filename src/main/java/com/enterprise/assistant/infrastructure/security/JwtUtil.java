@@ -55,6 +55,7 @@ public class JwtUtil {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
+    // TODO: revisar si esto es necesario o se puede simplificar a secret.getBytes()
     private SecretKey getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(java.util.Base64.getEncoder().encodeToString(secret.getBytes()));
         return Keys.hmacShaKeyFor(keyBytes);

@@ -37,14 +37,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExternalService(ExternalServiceException ex) {
         log.error("External service error: {}", ex.getMessage());
         return ResponseEntity.status(503).body(buildError("External Service Error",
-                "No se pudo conectar con el servicio externo", 503));
+                "Unable to connect to external service", 503));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(500).body(buildError("Internal Error",
-                "Ocurrio un error inesperado", 500));
+                "An unexpected error occurred", 500));
     }
 
     private ErrorResponse buildError(String error, String message, int status) {

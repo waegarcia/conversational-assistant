@@ -124,6 +124,7 @@ public class ConversationService {
         };
     }
 
+    // TODO: implementar cache con TTL para reducir llamadas a OpenWeather API (rate limit: 60/min)
     private String handleWeatherQuery(String userMessage) {
         try {
             String city = intentProcessorService.extractCity(userMessage);

@@ -47,6 +47,7 @@ public class IntentProcessorService {
         return Intent.UNKNOWN;
     }
 
+    // TODO: usar librería de NLP o diccionario de ciudades para mejorar detección
     public String extractCity(String message) {
         String[] commonPrepositions = {"en", "de", "para", "desde"};
         String lowerMessage = message.toLowerCase();
