@@ -168,7 +168,16 @@ docker-compose up --build
 
 La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
 
-**Demo en AWS EC2:** http://54.167.152.169:8080/swagger-ui/index.html
+**Demo en AWS EC2:** http://54.167.152.169:8080/swagger-ui/index.html  
+1. Ejecutar `/api/auth/login` → Try it out → completar `{"username": "admin", "password": "password123"}` → Execute
+2. Copiar el `token` de la respuesta
+3. Click en **Authorize** (arriba a la derecha), pegar `Bearer <token>` y confirmar
+4. Probar `POST /api/conversations` con `{"userId": "user1", "message": "Hola"}` para iniciar una conversación
+5. Copiar el `sessionId` de la respuesta y agregarlo en los siguientes mensajes para continuar la misma conversación
+6. Probar consultas de clima: `{"sessionId": "<id>", "userId": "user1", "message": "Clima en Buenos Aires"}` (se pueden consultar diferentes ciudades, por ejemplo: Madrid, Chicago, etc.)
+7. Para finalizar: `DELETE /api/conversations/{sessionId}`
+8. Para ver el historial de una conversación: `GET /api/conversations/{sessionId}`
+9. Para ver las métricas: `GET /api/metrics/summary`
 
 ## Autor
 
