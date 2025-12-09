@@ -59,10 +59,15 @@ public class IntentProcessorService {
 
                 String[] words = afterPrep.split("[\\s,?.!]+");
 
+                // Detección básica de ciudades compuestas comunes en español
+                // Ej: Buenos Aires, San Francisco, Santa Fe, Los Angeles, El Cairo, La Paz...
                 if (words.length >= 2 &&
                         (words[0].equalsIgnoreCase("buenos") ||
                                 words[0].equalsIgnoreCase("san") ||
-                                words[0].equalsIgnoreCase("santa"))) {
+                                words[0].equalsIgnoreCase("santa") ||
+                                words[0].equalsIgnoreCase("los") ||
+                                words[0].equalsIgnoreCase("el") ||
+                                words[0].equalsIgnoreCase("la"))) {
                     String cityName = words[0] + " " + words[1];
                     log.debug("Extracted compound city name: {}", cityName);
                     return cityName;
