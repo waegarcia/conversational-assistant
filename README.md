@@ -1,9 +1,7 @@
 # Conversational Assistant
-
 Microservicio Java de asistente virtual conversacional con integración a OpenWeather API.
 
 ## Stack Tecnológico
-
 - Java 17 + Spring Boot 3.4
 - H2 (desarrollo) / PostgreSQL (producción)
 - OpenWeather API para consultas de clima
@@ -11,7 +9,6 @@ Microservicio Java de asistente virtual conversacional con integración a OpenWe
 - JWT para autenticación
 
 ## Requisitos
-
 - Java 17+
 - Maven 3.9+
 - API Key de OpenWeather (gratuita): https://openweathermap.org/api
@@ -25,7 +22,6 @@ cd conversational-assistant
 ```
 
 **2. Configurar variables de entorno**
-
 Linux/Mac:
 ```bash
 export WEATHER_API_KEY=<tu_api_key_OpenWeather_API>
@@ -33,7 +29,6 @@ export JWT_SECRET=<clave_minimo_32_caracteres>
 export AUTH_USERNAME=admin
 export AUTH_PASSWORD=password123
 ```
-
 Windows PowerShell:
 ```powershell
 $env:WEATHER_API_KEY="<tu_api_key_OpenWeather_API>"
@@ -41,7 +36,6 @@ $env:JWT_SECRET="<clave_minimo_32_caracteres>"
 $env:AUTH_USERNAME="admin"
 $env:AUTH_PASSWORD="password123"
 ```
-
 > Otra opción es crear un archivo .env local con estos datos.
 > En desarrollo se usa una DB H2 en memoria, no es necesario configurar variables de base de datos.
 
@@ -56,7 +50,6 @@ mvn spring-boot:run
 - H2 Console: http://localhost:8080/h2-console (JDBC: `jdbc:h2:mem:assistant_db`, user: `sa`, pass: (dejar vacío) )
 
 ## API Endpoints
-
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | POST | `/api/conversations` | Enviar mensaje al asistente |
@@ -68,7 +61,6 @@ mvn spring-boot:run
 **Credenciales desarrollo:** `admin` / `password123` (para obtener token JWT)
 
 ### Ejemplo de uso
-
 ```bash
 # 1. Obtener token JWT
 curl -X POST http://localhost:8080/api/auth/login \
@@ -97,7 +89,6 @@ curl -X DELETE http://localhost:8080/api/conversations/abc-123 \
 ```
 
 ## Intenciones soportadas
-
 - **GREETING**: "Hola", "Buenos días" → Saludo
 - **WEATHER_QUERY**: "Clima en Madrid" → Consulta OpenWeather API
 - **HELP**: "Ayuda" → Instrucciones de uso
@@ -105,24 +96,19 @@ curl -X DELETE http://localhost:8080/api/conversations/abc-123 \
 - **UNKNOWN**: Cualquier otra cosa → Mensaje de ayuda
 
 ## Diagramas
-
 ### Arquitectura
 ![Arquitectura](docs/architecture-diagram.png)
-
 ### Secuencia
 ![Secuencia](docs/sequence-diagram.png)
 
 ## Tests
-
 ```bash
 mvn test
 ```
-
 - 4 clases de test
 - Cobertura de casos principales y manejo de errores
 
 ## Observabilidad
-
 Métricas disponibles en `/api/metrics/summary`:
 | Métrica | Descripción | Relevancia |
 |---------|-------------|------------|
@@ -132,20 +118,32 @@ Métricas disponibles en `/api/metrics/summary`:
 | `external.api.calls` | Llamadas a API externa | Monitorea dependencias externas |
 | `response.time` | Tiempo por intención | UX crítica en chat, detectar cuellos de botella |
 
+## Modelo de Persistencia
+Esquema relacional con 2 tablas principales:
+
+**conversations**: Sesiones de chat
+- `session_id` (UUID, unique): Identificador público de la sesión
+- `user_id`: Usuario que inicia la conversación
+- `status`: ACTIVE | COMPLETED
+- `started_at`, `ended_at`: Timestamps de inicio/fin
+
+**messages**: Mensajes individuales (relación 1:N con conversations)
+- `conversation_id` (FK): Referencia a la conversación padre
+- `role`: USER | ASSISTANT
+- `content`: Texto del mensaje
+- `intent`: Intención detectada (GREETING, WEATHER_QUERY, etc.)
+- `external_service_used`: API externa usada (ej: OpenWeather)
+- `timestamp`: Momento del mensaje
+La relación 1:N con `cascade` y `orphanRemoval` garantiza integridad referencial. PostgreSQL asegura ACID en transacciones que involucran ambas tablas.
+
 ## Decisiones de diseño
-
 1. **Regex para detección de intenciones**: Simple, predecible y sin dependencias externas. Suficiente para 5 intenciones. Para casos más complejos se podría integrar con DialogFlow o similar.
-
 2. **RestTemplate vs WebClient**: RestTemplate es suficiente para el caso de uso actual y resulta en código más simple.
-
 3. **PostgreSQL**: Modelo relacional adecuado para la relación Conversation-Message. ACID garantiza consistencia.
-
 4. **Arquitectura en capas**: Facilita testing con mocks y permite cambiar implementaciones sin afectar la lógica de negocio.
 
 ## Escalabilidad
-
 El servicio es stateless (JWT), permitiendo escalar horizontalmente con múltiples instancias detrás de un load balancer. Para mayor volumen:
-
 - **Cache**: Spring Cache + Redis para respuestas de OpenWeather (TTL configurable).
 - **Base de datos**: PostgreSQL con read replicas, Spring Data las soporta nativamente.
 - **Circuit breaker**: Resilience4j para manejar fallos de APIs externas.
@@ -153,32 +151,27 @@ El servicio es stateless (JWT), permitiendo escalar horizontalmente con múltipl
 - **Mensajería asíncrona**: Spring AMQP (RabbitMQ) o Spring Kafka para procesar mensajes en background.
 - **Monitoreo**: Prometheus + Grafana para dashboards y alertas en tiempo real.
 
-## Docker (producción)
-
-Requiere Docker y Docker Compose instalados.
-
+## Ejecución (producción)
+Requiere Docker y Docker Compose instalados. La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
 ```bash
 # Copiar y configurar variables
 cp .env.example .env
 # Editar .env con tus valores (ver .env.example)
 
-# Levantar (incluye PostgreSQL)
+# Levantar (el contenedor incluye la DB PostgreSQL)
 docker-compose up --build
 ```
 
-La app queda en `http://localhost:8080`. Usa PostgreSQL en lugar de H2.
-
-**Demo en AWS EC2:** http://54.167.152.169:8080/swagger-ui/index.html  
-1. Ejecutar `/api/auth/login` → Try it out → completar `{"username": "admin", "password": "password123"}` → Execute
-2. Copiar el `token` de la respuesta
-3. Click en **Authorize** (arriba a la derecha), pegar `Bearer <token>` y confirmar
-4. Probar `POST /api/conversations` con `{"userId": "user1", "message": "Hola"}` para iniciar una conversación
-5. Copiar el `sessionId` de la respuesta y agregarlo en los siguientes mensajes para continuar la misma conversación
+## Demo en AWS EC2: http://54.167.152.169:8080/swagger-ui/index.html  
+1. Ejecutar `/api/auth/login` → Try it out → completar `{"username": "admin", "password": "password123"}` → Execute.
+2. Copiar el `token` de la respuesta.
+3. Click en **Authorize** (arriba a la derecha), pegar `Bearer <token>` y confirmar.
+4. Probar `POST /api/conversations` con `{"userId": "user1", "message": "Hola"}` para iniciar una conversación.
+5. Copiar el `sessionId` de la respuesta y agregarlo en los siguientes mensajes para continuar la misma conversación.
 6. Probar consultas de clima: `{"sessionId": "<id>", "userId": "user1", "message": "Clima en Buenos Aires"}` (se pueden consultar diferentes ciudades, por ejemplo: Madrid, Chicago, etc.)
 7. Para finalizar: `DELETE /api/conversations/{sessionId}`
 8. Para ver el historial de una conversación: `GET /api/conversations/{sessionId}`
 9. Para ver las métricas: `GET /api/metrics/summary`
 
 ## Autor
-
 Walter Garcia
