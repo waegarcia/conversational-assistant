@@ -173,5 +173,9 @@ docker-compose up --build
 8. Para ver el historial de una conversación: `GET /api/conversations/{sessionId}`
 9. Para ver las métricas: `GET /api/metrics/summary`
 
+## TODOs
+- Ports and Adapters (Hexagonal Architecture)
+- Spring Security
+
 ## Autor
 Walter Garcia
